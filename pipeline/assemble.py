@@ -8,16 +8,7 @@ import pandas as pd
 
 from .pgr_score_calculator import attach_z_and_scores, build_props
 from .positions import GROUP_LABELS, POSITION_GROUPS
-
-
-def parse_record(record: str) -> tuple[int, int, int]:
-    wins = losses = ties = 0
-    parts = (record or "0-0").split("-")
-    if len(parts) >= 2:
-        wins, losses = int(parts[0]), int(parts[1])
-    if len(parts) == 3:
-        ties = int(parts[2])
-    return wins, losses, ties
+from .records import records_by_abbr
 
 
 def build_player_table(
@@ -103,37 +94,36 @@ def assemble_document(
     week_max = int(games["week"].max())
     teams_out: dict[str, Any] = {}
     standings: list[dict[str, Any]] = []
+    records = records_by_abbr(games)
+    ordered = sorted(team_ref, key=lambda t: int(records[t["abbr"]]["rank"]))
 
-    for meta in sorted(team_ref, key=lambda t: t["rank"]):
+    for meta in ordered:
         abbr = meta["abbr"]
+        rec = records[abbr]
         roster = scored[scored["teamAbbr"] == abbr]
         groups: dict[str, list[dict[str, Any]]] = {g: [] for g in POSITION_GROUPS}
         for _, row in roster.sort_values(["pgrScore", "snaps"], ascending=[False, False]).iterrows():
             groups[row["group"]].append(player_payload(row))
-        wins, losses, ties = parse_record(meta["record"])
-        gp = wins + losses + ties
-        win_pct = meta.get("winPct")
-        if win_pct is None:
-            win_pct = round((wins + 0.5 * ties) / gp, 3) if gp else 0.0
         teams_out[abbr] = {
             "abbr": abbr,
             "name": meta["name"],
             "conf": meta["conf"],
             "div": meta["div"],
-            "record": meta["record"],
-            "winPct": win_pct,
-            "rank": meta["rank"],
+            "record": rec["record"],
+            "winPct": float(rec["winPct"]),
+            "rank": int(rec["rank"]),
             "colors": meta["colors"],
+            "logo": f"logos/{abbr}.png",
             "rosterCount": int(len(roster)),
             "groups": groups,
             "splitHomeAway": team_home_away_split(roster, games, abbr),
         }
         standings.append(
             {
-                "rank": meta["rank"],
+                "rank": int(rec["rank"]),
                 "abbr": abbr,
                 "name": meta["name"],
-                "record": meta["record"],
+                "record": rec["record"],
                 "conf": meta["conf"],
                 "div": meta["div"],
             }
@@ -149,7 +139,7 @@ def assemble_document(
             "weekMin": week_min,
             "weekMax": week_max,
             "coverage": f"Semanas {week_min}–{week_max} da temporada 2021 · {len(games)} jogos",
-            "note": "PGRScore (40–99) calculado em Python por grupo de posição. Props e tracking derivados do dataset original.",
+            "note": "PGRScore (40–99) por grupo de posição. Campanha W-L-T das semanas 1–8 (não a temporada completa).",
             "positionGroups": list(POSITION_GROUPS),
             "groupLabels": dict(GROUP_LABELS),
         },
