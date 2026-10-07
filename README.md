@@ -44,10 +44,12 @@ python tests/test_pgr_score.py
 python tests/test_records.py
 ```
 
-Amostra de tracking NGS (1 jogo, ~12 jogadas) — CSV completo fica fora do git (~850 MB no repo Bliss):
+Tracking NGS (122 jogos, fora do git ~850 MB). Baixe os CSVs e gere o índice; o dashboard pede os frames sob demanda:
 
 ```bash
-python scripts/extract_play_motion.py --tracking /caminho/tracking_2021090900.csv
+python scripts/download_tracking.py
+python scripts/build_plays_index.py
+python scripts/plays_server.py --port 43127
 ```
 
 Consulta SQL de exemplo:
@@ -58,13 +60,13 @@ sqlite3 output/pgrscore.sqlite "SELECT name, pos_group, pgr_score, snaps FROM pl
 
 ## Dashboard
 
-Sirva a pasta `web/` (o browser bloqueia `fetch` em arquivo local):
+A aba **Jogadas** precisa do servidor com API de frames (os CSVs de tracking ficam em `/tmp/bdb-tracking`, fora do git):
 
 ```bash
-python -m http.server 43127 --directory web
+python scripts/plays_server.py --port 43127
 ```
 
-Abra `http://127.0.0.1:43127` — Head-to-Head, elencos e gráficos. O JS consome **somente** `processed_data.json`.
+Abra `http://127.0.0.1:43127` — Head-to-Head, elencos, gráficos e Jogadas. O JS lê `processed_data.json` e `plays/index.json`; o playback chama `/api/motion/{gameId}/{playId}`.
 
 ## Layout
 
@@ -80,7 +82,7 @@ data/raw/                 dataset de amostra
 data/ref/                 nomes, conferência, divisão, cores
 data/raw/game_results.csv placares oficiais semanas 1–8 (ESPN, casados a games.csv)
 web/                      apresentação (tiles usam web/logos/*.png)
-web/play_motion.json      amostra NGS (não commitar tracking_*.csv de ~850 MB)
+web/plays/index.json      catálogo NGS (snap thumbs; CSVs de tracking não entram no git)
 ARCHITECTURE.md           fluxo S3 → Lambda/Glue → S3/DynamoDB → UI
 ```
 

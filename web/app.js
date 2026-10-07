@@ -9,7 +9,9 @@
   var nav = { team: null, group: null };                  // drill-down equipes
   var chart = { kind: "team", teamA: null, teamB: null, playerId: null, metric: "topSpeedMph" };
   var MOTION = null;
-  var playsUi = { filter: "ALL", idx: 0, frame: 0, playing: false, timer: null };
+  var PLAYS = null;
+  var playsUi = { team: null, week: 0, page: 0, frame: 0, playing: false, timer: null };
+  var PLAYS_PAGE = 12;
 
   // ---- util --------------------------------------------------------------
   function $(id) { return document.getElementById(id); }
@@ -57,10 +59,15 @@
     bindUI();
     renderTeamGrid();
     var q = (location.search.match(/view=([a-z]+)/) || [])[1];
+    var teamQ = (location.search.match(/team=([A-Z]+)/) || [])[1];
+    if (teamQ) playsUi.team = teamQ;
     switchView(q || "h2h");
     var pid = (location.search.match(/play=(\d+)/) || [])[1];
-    if (q === "plays" && pid && MOTION) {
-      var found = MOTION.plays.filter(function (p) { return String(p.playId) === pid; })[0];
+    var gid = (location.search.match(/game=(\d+)/) || [])[1];
+    if (q === "plays" && pid && PLAYS) {
+      var found = PLAYS.plays.filter(function (p) {
+        return String(p.playId) === pid && (!gid || String(p.gameId) === gid);
+      })[0];
       if (found) openPlay(found);
     }
   }
@@ -71,8 +78,9 @@
         if (!r.ok) throw new Error(r.status);
         return r.json();
       }),
-      fetch("play_motion.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      fetch("plays/index.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
     ]).then(function (pair) {
+      PLAYS = pair[1];
       MOTION = pair[1];
       boot(pair[0]);
     }).catch(function () {
@@ -653,15 +661,39 @@
     playsUi.playing = false;
     if (playsUi.timer) { clearInterval(playsUi.timer); playsUi.timer = null; }
   }
-  function motionPlays() {
-    if (!MOTION || !MOTION.plays) return [];
-    if (playsUi.filter === "ALL") return MOTION.plays;
-    return MOTION.plays.filter(function (p) { return p.possessionTeam === playsUi.filter; });
+  function catalogPlays() {
+    if (!PLAYS || !PLAYS.plays) return [];
+    return PLAYS.plays.filter(function (p) {
+      if (playsUi.team && p.possessionTeam !== playsUi.team) return false;
+      if (playsUi.week && p.week !== playsUi.week) return false;
+      return true;
+    });
+  }
+  function possessionCounts() {
+    var c = {};
+    if (!PLAYS || !PLAYS.plays) return c;
+    PLAYS.plays.forEach(function (p) {
+      c[p.possessionTeam] = (c[p.possessionTeam] || 0) + 1;
+    });
+    return c;
+  }
+  function normalizeFrame(frame) {
+    if (!frame) return { p: [], b: null, f: 0 };
+    if (frame.p && frame.p.length && Object.prototype.toString.call(frame.p[0]) === "[object Array]") {
+      return {
+        f: frame.f,
+        b: frame.b,
+        p: frame.p.map(function (a) { return { t: a[0], j: a[1], x: a[2], y: a[3] }; })
+      };
+    }
+    return frame;
   }
   function frameAt(play, fid) {
+    if (play.snap && fid === play.snapFrame && !play.frames) return normalizeFrame(play.snap);
+    if (!play.frames || !play.frames.length) return normalizeFrame(play.snap);
     for (var i = 0; i < play.frames.length; i++)
-      if (play.frames[i].f === fid) return play.frames[i];
-    return play.frames[0];
+      if (play.frames[i].f === fid) return normalizeFrame(play.frames[i]);
+    return normalizeFrame(play.frames[0]);
   }
   function drawField(play, frame, w, h) {
     var svg = svgEl("svg", { class: "field-svg", viewBox: "0 0 1200 533", preserveAspectRatio: "xMidYMid meet" });
@@ -671,7 +703,8 @@
     }
     svg.appendChild(svgEl("rect", { x: 0, y: 0, width: 100, height: 533, fill: "rgba(0,0,0,.18)" }));
     svg.appendChild(svgEl("rect", { x: 1100, y: 0, width: 100, height: 533, fill: "rgba(0,0,0,.18)" }));
-    if (!frame) return svg;
+    frame = normalizeFrame(frame);
+    if (!frame || !frame.p) return svg;
     var sx = 1200 / 120, sy = 533 / 53.3;
     (frame.p || []).forEach(function (pl) {
       var team = DATA && DATA.teams[pl.t];
@@ -701,30 +734,87 @@
   function showPlaysList() {
     $("playsList").classList.remove("hidden");
     $("playsDetail").classList.add("hidden");
-    if (!MOTION) {
-      $("playsCaption").textContent = "Sem play_motion.json. Rode scripts/extract_play_motion.py sobre um CSV de tracking NGS.";
-      $("playsGrid").innerHTML = "";
+    var tabs = $("playsTeamTabs");
+    var grid = $("playsGrid");
+    if (!PLAYS || !PLAYS.plays) {
+      $("playsCaption").textContent = "Sem plays/index.json. Rode scripts/build_plays_index.py com os CSVs de tracking em /tmp/bdb-tracking.";
+      tabs.innerHTML = "";
+      grid.innerHTML = "";
       return;
     }
-    var m = MOTION.meta || {};
+    var m = PLAYS.meta || {};
     $("playsCaption").textContent =
-      "Tracking NGS real · " + m.home + " vs " + m.away + " · semana " + m.week +
-      " · " + (MOTION.plays || []).length + " jogadas (amostra). Miniatura = frame do snap.";
-    var teams = ["ALL"].concat([m.home, m.away].filter(Boolean));
-    var tabs = $("playsTeamTabs");
+      "Tracking NGS real · " + m.games + " jogos · " + m.plays + " jogadas · semanas " +
+      m.weekMin + "–" + m.weekMax + ". Escolha um time (posse). Miniatura = snap; playback busca os frames.";
+
     tabs.innerHTML = "";
-    teams.forEach(function (t) {
-      var b = el("button", "tab" + (playsUi.filter === t ? " active" : ""), t === "ALL" ? "Todas" : t);
-      b.addEventListener("click", function () { playsUi.filter = t; showPlaysList(); });
-      tabs.appendChild(b);
+    var counts = possessionCounts();
+    if (!playsUi.team) {
+      var picker = el("div", "team-grid");
+      teamList().forEach(function (team) {
+        var n = counts[team.abbr] || 0;
+        var card = teamCard(team, function () {
+          playsUi.team = team.abbr;
+          playsUi.page = 0;
+          showPlaysList();
+        }, false);
+        card.appendChild(el("div", "tmeta", n + " jogadas"));
+        picker.appendChild(card);
+      });
+      tabs.appendChild(picker);
+      grid.innerHTML = "";
+      grid.appendChild(el("div", "chart-desc", "Selecione um time acima para ver as jogadas da posse nas semanas 1–8."));
+      return;
+    }
+
+    var team = DATA.teams[playsUi.team];
+    var bar = el("div", "tabs");
+    var back = el("button", "back", "← Times");
+    back.style.marginBottom = "0";
+    back.addEventListener("click", function () {
+      playsUi.team = null;
+      playsUi.week = 0;
+      playsUi.page = 0;
+      showPlaysList();
     });
-    var grid = $("playsGrid");
+    bar.appendChild(back);
+    bar.appendChild(el("span", "leg",
+      team.name + " · " + (counts[playsUi.team] || 0) + " jogadas com posse"));
+    tabs.appendChild(bar);
+
+    var weeks = el("div", "tabs");
+    weeks.style.marginTop = "14px";
+    [{ v: 0, t: "Todas as semanas" }].concat(
+      [1, 2, 3, 4, 5, 6, 7, 8].map(function (w) { return { v: w, t: "S" + w }; })
+    ).forEach(function (opt) {
+      var b = el("button", "tab" + (playsUi.week === opt.v ? " active" : ""), opt.t);
+      b.addEventListener("click", function () { playsUi.week = opt.v; playsUi.page = 0; showPlaysList(); });
+      weeks.appendChild(b);
+    });
+    tabs.appendChild(weeks);
+
+    var list = catalogPlays();
+    var pages = Math.max(1, Math.ceil(list.length / PLAYS_PAGE));
+    if (playsUi.page >= pages) playsUi.page = 0;
+    var slice = list.slice(playsUi.page * PLAYS_PAGE, (playsUi.page + 1) * PLAYS_PAGE);
+    var pager = el("div", "tabs");
+    pager.appendChild(el("span", "leg", list.length + " jogadas · pág. " + (playsUi.page + 1) + "/" + pages));
+    var prev = el("button", "tab", "←");
+    prev.disabled = playsUi.page === 0;
+    prev.addEventListener("click", function () { if (playsUi.page > 0) { playsUi.page--; showPlaysList(); } });
+    var next = el("button", "tab", "→");
+    next.disabled = playsUi.page >= pages - 1;
+    next.addEventListener("click", function () { if (playsUi.page < pages - 1) { playsUi.page++; showPlaysList(); } });
+    pager.appendChild(prev);
+    pager.appendChild(next);
+    tabs.appendChild(pager);
+
     grid.innerHTML = "";
-    motionPlays().forEach(function (play, i) {
+    slice.forEach(function (play) {
       var card = el("div", "play-thumb");
-      var snap = frameAt(play, play.snapFrame);
-      card.appendChild(drawField(play, snap, 240, 106));
+      card.appendChild(drawField(play, play.snap, 240, 106));
       card.appendChild(el("div", "pt-meta",
+        "S" + play.week + " · " + play.home + " vs " + play.away + " · " +
         play.possessionTeam + " · " + play.down + "&" + play.ytg + " · " +
         (play.playResult != null ? play.playResult + " yd" : "") +
         (play.passResult ? " · " + play.passResult : "")));
@@ -744,14 +834,12 @@
     var lab = $("playFrameLab");
     if (lab) lab.textContent = "frame " + playsUi.frame;
   }
-  function openPlay(play) {
-    stopPlayback();
-    playsUi.frame = play.snapFrame || play.frames[0].f;
-    $("playsList").classList.add("hidden");
-    $("playsDetail").classList.remove("hidden");
+  function renderPlayChrome(play) {
     var hero = $("playHero");
     hero.innerHTML = "";
-    hero.appendChild(el("div", "chart-title", play.possessionTeam + " vs " + play.defensiveTeam + " · play " + play.playId));
+    hero.appendChild(el("div", "chart-title",
+      play.possessionTeam + " vs " + play.defensiveTeam + " · S" + (play.week || "?") +
+      " · " + (play.home || "") + "/" + (play.away || "") + " · play " + play.playId));
     hero.appendChild(el("div", "chart-desc", play.desc));
     var chips = el("div", "stat-row");
     chips.appendChild(statChip(play.down + " & " + play.ytg, "DOWN"));
@@ -761,7 +849,8 @@
     chips.appendChild(statChip((pr.hits || 0) + "/" + (pr.hurries || 0) + "/" + (pr.sacks || 0), "HIT/HURRY/SACK PFF"));
     chips.appendChild(statChip(play.releaseFrame != null ? play.releaseFrame : "—", "FRAME RELEASE"));
     hero.appendChild(chips);
-
+  }
+  function mountScrub(play) {
     var minF = play.frames[0].f, maxF = play.frames[play.frames.length - 1].f;
     var scrub = $("playScrub");
     scrub.innerHTML = "";
@@ -792,6 +881,40 @@
     lab.id = "playFrameLab";
     scrub.appendChild(lab);
     paintPlayFrame(play);
+  }
+  function openPlay(play) {
+    stopPlayback();
+    playsUi.frame = play.snapFrame || 1;
+    $("playsList").classList.add("hidden");
+    $("playsDetail").classList.remove("hidden");
+    renderPlayChrome(play);
+    if (play.frames && play.frames.length) {
+      mountScrub(play);
+      return;
+    }
+    $("playFieldWrap").innerHTML = "";
+    $("playFieldWrap").appendChild(el("div", "chart-desc", "Carregando frames NGS…"));
+    $("playScrub").innerHTML = "";
+    fetch("/api/motion/" + play.gameId + "/" + play.playId)
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+      .then(function (full) {
+        play.frames = full.frames;
+        play.snapFrame = full.snapFrame;
+        play.releaseFrame = full.releaseFrame;
+        if (full.pressure) play.pressure = full.pressure;
+        playsUi.frame = play.snapFrame || play.frames[0].f;
+        renderPlayChrome(play);
+        mountScrub(play);
+      })
+      .catch(function () {
+        $("playFieldWrap").innerHTML = "";
+        $("playFieldWrap").appendChild(el("div", "chart-desc",
+          "Não achei os frames. Suba o servidor com `python scripts/plays_server.py` e os CSVs em /tmp/bdb-tracking."));
+        if (play.snap) $("playFieldWrap").appendChild(drawField(play, play.snap, 720, 320));
+      });
   }
 
   // ---- eventos -----------------------------------------------------------

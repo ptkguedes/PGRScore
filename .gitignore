@@ -7,4 +7,5 @@ venv/
 .aws-local/
 output/*.sqlite
 data/tracking/
+tracking_*.csv
 .DS_Store

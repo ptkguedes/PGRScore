@@ -88,7 +88,8 @@ body{
 .cta:not(:disabled):hover{transform:translateY(-2px)}
 
 /* TEAM GRID */
-.team-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px}
+.team-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; width:100%}
+#playsTeamTabs{display:block; width:100%; margin-bottom:18px}
 .team-card{position:relative; cursor:pointer; border-radius:var(--radius); overflow:hidden;
   border:1px solid var(--line); background:var(--panel); padding:14px; transition:.18s; isolation:isolate}
 .team-card::before{content:""; position:absolute; inset:0; z-index:-1; opacity:.20;
@@ -297,7 +298,7 @@ svg.chart{width:100%; height:auto; display:block; overflow:visible}
     <div id="playsList">
       <h1 class="screen-title">Jogadas <span>&amp; Tracking</span></h1>
       <p class="screen-caption" id="playsCaption">Miniaturas no snap e playback com frames NGS (x, y, velocidade).</p>
-      <div class="tabs" id="playsTeamTabs"></div>
+      <div id="playsTeamTabs"></div>
       <div id="playsGrid" class="play-grid"></div>
     </div>
     <div id="playsDetail" class="hidden">
