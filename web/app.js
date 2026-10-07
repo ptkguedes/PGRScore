@@ -83,10 +83,18 @@
   // ---- logo / cards ------------------------------------------------------
   function teamLogo(team, size) {
     var d = el("div", "logo");
-    d.textContent = team.abbr;
     d.style.background = "linear-gradient(135deg," + team.colors.primary + " 0%," + team.colors.secondary + " 100%)";
     d.style.color = textOn(team.colors.primary);
     if (size) { d.style.width = size+"px"; d.style.height = size+"px"; d.style.fontSize = (size*0.4)+"px"; }
+    var src = team.logo || ("logos/" + team.abbr + ".png");
+    var img = document.createElement("img");
+    img.alt = team.abbr;
+    img.src = src;
+    img.addEventListener("error", function () {
+      img.remove();
+      d.textContent = team.abbr;
+    });
+    d.appendChild(img);
     return d;
   }
   function teamCard(team, onClick, selected) {

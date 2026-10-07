@@ -124,6 +124,7 @@ def assemble_document(
             "winPct": win_pct,
             "rank": meta["rank"],
             "colors": meta["colors"],
+            "logo": f"logos/{abbr}.png",
             "rosterCount": int(len(roster)),
             "groups": groups,
             "splitHomeAway": team_home_away_split(roster, games, abbr),

@@ -71,7 +71,7 @@ pipeline/                 núcleo Python
 scripts/aws_s3_upload.py  S3 / Lambda
 data/raw/                 dataset de amostra
 data/ref/                 tabela 2021 e cores
-web/                      apresentação
+web/                      apresentação (tiles usam web/logos/*.png)
 ARCHITECTURE.md           fluxo S3 → Lambda/Glue → S3/DynamoDB → UI
 ```
 
