@@ -44,6 +44,12 @@ python tests/test_pgr_score.py
 python tests/test_records.py
 ```
 
+Amostra de tracking NGS (1 jogo, ~12 jogadas) — CSV completo fica fora do git (~850 MB no repo Bliss):
+
+```bash
+python scripts/extract_play_motion.py --tracking /caminho/tracking_2021090900.csv
+```
+
 Consulta SQL de exemplo:
 
 ```bash
@@ -74,6 +80,7 @@ data/raw/                 dataset de amostra
 data/ref/                 nomes, conferência, divisão, cores
 data/raw/game_results.csv placares oficiais semanas 1–8 (ESPN, casados a games.csv)
 web/                      apresentação (tiles usam web/logos/*.png)
+web/play_motion.json      amostra NGS (não commitar tracking_*.csv de ~850 MB)
 ARCHITECTURE.md           fluxo S3 → Lambda/Glue → S3/DynamoDB → UI
 ```
 

@@ -6,4 +6,5 @@ venv/
 *.log
 .aws-local/
 output/*.sqlite
+data/tracking/
 .DS_Store
