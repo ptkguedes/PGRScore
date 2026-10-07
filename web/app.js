@@ -8,6 +8,10 @@
   var h2h = { home: null, away: null, pos: "QB" };        // head-to-head
   var nav = { team: null, group: null };                  // drill-down equipes
   var chart = { kind: "team", teamA: null, teamB: null, playerId: null, metric: "topSpeedMph" };
+  var MOTION = null;
+  var PLAYS = null;
+  var playsUi = { team: null, week: 0, page: 0, frame: 0, playing: false, timer: null };
+  var PLAYS_PAGE = 12;
 
   // ---- util --------------------------------------------------------------
   function $(id) { return document.getElementById(id); }
@@ -54,16 +58,34 @@
     chart.teamB = DATA.standings[1].abbr;
     bindUI();
     renderTeamGrid();
-    switchView("h2h");
+    var q = (location.search.match(/view=([a-z]+)/) || [])[1];
+    var teamQ = (location.search.match(/team=([A-Z]+)/) || [])[1];
+    if (teamQ) playsUi.team = teamQ;
+    switchView(q || "h2h");
+    var pid = (location.search.match(/play=(\d+)/) || [])[1];
+    var gid = (location.search.match(/game=(\d+)/) || [])[1];
+    if (q === "plays" && pid && PLAYS) {
+      var found = PLAYS.plays.filter(function (p) {
+        return String(p.playId) === pid && (!gid || String(p.gameId) === gid);
+      })[0];
+      if (found) openPlay(found);
+    }
   }
   function loadData() {
     setStatus("Carregando dados processados…");
-    fetch("processed_data.json")
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(boot)
-      .catch(function () {
-        setStatus("Não consegui carregar processed_data.json. Rode `python -m pipeline.run` e sirva a pasta web/", true);
-      });
+    Promise.all([
+      fetch("processed_data.json").then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      }),
+      fetch("plays/index.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+    ]).then(function (pair) {
+      PLAYS = pair[1];
+      MOTION = pair[1];
+      boot(pair[0]);
+    }).catch(function () {
+      setStatus("Não consegui carregar processed_data.json. Rode `python -m pipeline.run` e sirva a pasta web/", true);
+    });
   }
 
   // ---- navegação principal ----------------------------------------------
@@ -72,11 +94,13 @@
     $("view-h2h").classList.toggle("hidden", v !== "h2h");
     $("view-teams").classList.toggle("hidden", v !== "teams");
     $("view-charts").classList.toggle("hidden", v !== "charts");
+    $("view-plays").classList.toggle("hidden", v !== "plays");
     var btns = document.querySelectorAll(".navbtn");
     for (var i = 0; i < btns.length; i++)
       btns[i].classList.toggle("active", btns[i].dataset.view === v);
     if (v === "teams") renderTeams();
     if (v === "charts") renderCharts();
+    if (v === "plays") { stopPlayback(); showPlaysList(); }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -630,6 +654,269 @@
     return c;
   }
 
+  // =======================================================================
+  // VIEW 4: JOGADAS (NGS tracking playback)
+  // =======================================================================
+  function stopPlayback() {
+    playsUi.playing = false;
+    if (playsUi.timer) { clearInterval(playsUi.timer); playsUi.timer = null; }
+  }
+  function catalogPlays() {
+    if (!PLAYS || !PLAYS.plays) return [];
+    return PLAYS.plays.filter(function (p) {
+      if (playsUi.team && p.possessionTeam !== playsUi.team) return false;
+      if (playsUi.week && p.week !== playsUi.week) return false;
+      return true;
+    });
+  }
+  function possessionCounts() {
+    var c = {};
+    if (!PLAYS || !PLAYS.plays) return c;
+    PLAYS.plays.forEach(function (p) {
+      c[p.possessionTeam] = (c[p.possessionTeam] || 0) + 1;
+    });
+    return c;
+  }
+  function normalizeFrame(frame) {
+    if (!frame) return { p: [], b: null, f: 0 };
+    if (frame.p && frame.p.length && Object.prototype.toString.call(frame.p[0]) === "[object Array]") {
+      return {
+        f: frame.f,
+        b: frame.b,
+        p: frame.p.map(function (a) { return { t: a[0], j: a[1], x: a[2], y: a[3] }; })
+      };
+    }
+    return frame;
+  }
+  function frameAt(play, fid) {
+    if (play.snap && fid === play.snapFrame && !play.frames) return normalizeFrame(play.snap);
+    if (!play.frames || !play.frames.length) return normalizeFrame(play.snap);
+    for (var i = 0; i < play.frames.length; i++)
+      if (play.frames[i].f === fid) return normalizeFrame(play.frames[i]);
+    return normalizeFrame(play.frames[0]);
+  }
+  function drawField(play, frame, w, h) {
+    var svg = svgEl("svg", { class: "field-svg", viewBox: "0 0 1200 533", preserveAspectRatio: "xMidYMid meet" });
+    svg.appendChild(svgEl("rect", { x: 0, y: 0, width: 1200, height: 533, fill: "#1a7a3a" }));
+    for (var x = 100; x <= 1100; x += 100) {
+      svg.appendChild(svgEl("line", { x1: x, y1: 0, x2: x, y2: 533, stroke: "rgba(255,255,255,.35)", "stroke-width": 2 }));
+    }
+    svg.appendChild(svgEl("rect", { x: 0, y: 0, width: 100, height: 533, fill: "rgba(0,0,0,.18)" }));
+    svg.appendChild(svgEl("rect", { x: 1100, y: 0, width: 100, height: 533, fill: "rgba(0,0,0,.18)" }));
+    frame = normalizeFrame(frame);
+    if (!frame || !frame.p) return svg;
+    var sx = 1200 / 120, sy = 533 / 53.3;
+    (frame.p || []).forEach(function (pl) {
+      var team = DATA && DATA.teams[pl.t];
+      var fill = team ? team.colors.primary : "#888";
+      var c = svgEl("circle", {
+        class: pl.t === play.possessionTeam ? "dot-off" : "dot-def",
+        cx: (pl.x * sx).toFixed(1), cy: (pl.y * sy).toFixed(1), r: w < 400 ? 7 : 9, fill: fill
+      });
+      svg.appendChild(c);
+      if (pl.j != null) {
+        var tx = svgEl("text", {
+          x: (pl.x * sx).toFixed(1), y: (pl.y * sy + 3.5).toFixed(1),
+          "text-anchor": "middle", fill: "#fff", "font-size": "8", "font-family": "Barlow Condensed,sans-serif"
+        });
+        tx.textContent = String(pl.j);
+        svg.appendChild(tx);
+      }
+    });
+    if (frame.b) {
+      svg.appendChild(svgEl("circle", {
+        class: "dot-ball",
+        cx: (frame.b[0] * sx).toFixed(1), cy: (frame.b[1] * sy).toFixed(1), r: 5
+      }));
+    }
+    return svg;
+  }
+  function showPlaysList() {
+    $("playsList").classList.remove("hidden");
+    $("playsDetail").classList.add("hidden");
+    var tabs = $("playsTeamTabs");
+    var grid = $("playsGrid");
+    if (!PLAYS || !PLAYS.plays) {
+      $("playsCaption").textContent = "Sem plays/index.json. Rode scripts/build_plays_index.py com os CSVs de tracking em /tmp/bdb-tracking.";
+      tabs.innerHTML = "";
+      grid.innerHTML = "";
+      return;
+    }
+    var m = PLAYS.meta || {};
+    $("playsCaption").textContent =
+      "Tracking NGS real · " + m.games + " jogos · " + m.plays + " jogadas · semanas " +
+      m.weekMin + "–" + m.weekMax + ". Escolha um time (posse). Miniatura = snap; playback busca os frames.";
+
+    tabs.innerHTML = "";
+    var counts = possessionCounts();
+    if (!playsUi.team) {
+      var picker = el("div", "team-grid");
+      teamList().forEach(function (team) {
+        var n = counts[team.abbr] || 0;
+        var card = teamCard(team, function () {
+          playsUi.team = team.abbr;
+          playsUi.page = 0;
+          showPlaysList();
+        }, false);
+        card.appendChild(el("div", "tmeta", n + " jogadas"));
+        picker.appendChild(card);
+      });
+      tabs.appendChild(picker);
+      grid.innerHTML = "";
+      grid.appendChild(el("div", "chart-desc", "Selecione um time acima para ver as jogadas da posse nas semanas 1–8."));
+      return;
+    }
+
+    var team = DATA.teams[playsUi.team];
+    var bar = el("div", "tabs");
+    var back = el("button", "back", "← Times");
+    back.style.marginBottom = "0";
+    back.addEventListener("click", function () {
+      playsUi.team = null;
+      playsUi.week = 0;
+      playsUi.page = 0;
+      showPlaysList();
+    });
+    bar.appendChild(back);
+    bar.appendChild(el("span", "leg",
+      team.name + " · " + (counts[playsUi.team] || 0) + " jogadas com posse"));
+    tabs.appendChild(bar);
+
+    var weeks = el("div", "tabs");
+    weeks.style.marginTop = "14px";
+    [{ v: 0, t: "Todas as semanas" }].concat(
+      [1, 2, 3, 4, 5, 6, 7, 8].map(function (w) { return { v: w, t: "S" + w }; })
+    ).forEach(function (opt) {
+      var b = el("button", "tab" + (playsUi.week === opt.v ? " active" : ""), opt.t);
+      b.addEventListener("click", function () { playsUi.week = opt.v; playsUi.page = 0; showPlaysList(); });
+      weeks.appendChild(b);
+    });
+    tabs.appendChild(weeks);
+
+    var list = catalogPlays();
+    var pages = Math.max(1, Math.ceil(list.length / PLAYS_PAGE));
+    if (playsUi.page >= pages) playsUi.page = 0;
+    var slice = list.slice(playsUi.page * PLAYS_PAGE, (playsUi.page + 1) * PLAYS_PAGE);
+    var pager = el("div", "tabs");
+    pager.appendChild(el("span", "leg", list.length + " jogadas · pág. " + (playsUi.page + 1) + "/" + pages));
+    var prev = el("button", "tab", "←");
+    prev.disabled = playsUi.page === 0;
+    prev.addEventListener("click", function () { if (playsUi.page > 0) { playsUi.page--; showPlaysList(); } });
+    var next = el("button", "tab", "→");
+    next.disabled = playsUi.page >= pages - 1;
+    next.addEventListener("click", function () { if (playsUi.page < pages - 1) { playsUi.page++; showPlaysList(); } });
+    pager.appendChild(prev);
+    pager.appendChild(next);
+    tabs.appendChild(pager);
+
+    grid.innerHTML = "";
+    slice.forEach(function (play) {
+      var card = el("div", "play-thumb");
+      card.appendChild(drawField(play, play.snap, 240, 106));
+      card.appendChild(el("div", "pt-meta",
+        "S" + play.week + " · " + play.home + " vs " + play.away + " · " +
+        play.possessionTeam + " · " + play.down + "&" + play.ytg + " · " +
+        (play.playResult != null ? play.playResult + " yd" : "") +
+        (play.passResult ? " · " + play.passResult : "")));
+      card.appendChild(el("div", "pt-desc", play.desc));
+      card.addEventListener("click", function () { openPlay(play); });
+      grid.appendChild(card);
+    });
+  }
+  function paintPlayFrame(play) {
+    var wrap = $("playFieldWrap");
+    wrap.innerHTML = "";
+    wrap.appendChild(el("div", "chart-title", "Frame " + playsUi.frame + " / " + play.frames[play.frames.length - 1].f +
+      (play.releaseFrame && playsUi.frame >= play.releaseFrame ? " · passe lançado" : "")));
+    wrap.appendChild(drawField(play, frameAt(play, playsUi.frame), 720, 320));
+    var range = $("playRange");
+    if (range) range.value = String(playsUi.frame);
+    var lab = $("playFrameLab");
+    if (lab) lab.textContent = "frame " + playsUi.frame;
+  }
+  function renderPlayChrome(play) {
+    var hero = $("playHero");
+    hero.innerHTML = "";
+    hero.appendChild(el("div", "chart-title",
+      play.possessionTeam + " vs " + play.defensiveTeam + " · S" + (play.week || "?") +
+      " · " + (play.home || "") + "/" + (play.away || "") + " · play " + play.playId));
+    hero.appendChild(el("div", "chart-desc", play.desc));
+    var chips = el("div", "stat-row");
+    chips.appendChild(statChip(play.down + " & " + play.ytg, "DOWN"));
+    chips.appendChild(statChip(play.playResult != null ? play.playResult : "—", "JARDAS"));
+    chips.appendChild(statChip(play.passResult || "—", "PASSE"));
+    var pr = play.pressure || {};
+    chips.appendChild(statChip((pr.hits || 0) + "/" + (pr.hurries || 0) + "/" + (pr.sacks || 0), "HIT/HURRY/SACK PFF"));
+    chips.appendChild(statChip(play.releaseFrame != null ? play.releaseFrame : "—", "FRAME RELEASE"));
+    hero.appendChild(chips);
+  }
+  function mountScrub(play) {
+    var minF = play.frames[0].f, maxF = play.frames[play.frames.length - 1].f;
+    var scrub = $("playScrub");
+    scrub.innerHTML = "";
+    var playBtn = el("button", "tab", "Play");
+    playBtn.addEventListener("click", function () {
+      if (playsUi.playing) { stopPlayback(); playBtn.textContent = "Play"; return; }
+      playsUi.playing = true;
+      playBtn.textContent = "Pause";
+      playsUi.timer = setInterval(function () {
+        playsUi.frame += 1;
+        if (playsUi.frame > maxF) { playsUi.frame = minF; }
+        paintPlayFrame(play);
+      }, 100);
+    });
+    var range = document.createElement("input");
+    range.type = "range";
+    range.id = "playRange";
+    range.min = String(minF);
+    range.max = String(maxF);
+    range.value = String(playsUi.frame);
+    range.addEventListener("input", function () {
+      playsUi.frame = parseInt(range.value, 10);
+      paintPlayFrame(play);
+    });
+    scrub.appendChild(playBtn);
+    scrub.appendChild(range);
+    var lab = el("span", "leg", "frame " + playsUi.frame);
+    lab.id = "playFrameLab";
+    scrub.appendChild(lab);
+    paintPlayFrame(play);
+  }
+  function openPlay(play) {
+    stopPlayback();
+    playsUi.frame = play.snapFrame || 1;
+    $("playsList").classList.add("hidden");
+    $("playsDetail").classList.remove("hidden");
+    renderPlayChrome(play);
+    if (play.frames && play.frames.length) {
+      mountScrub(play);
+      return;
+    }
+    $("playFieldWrap").innerHTML = "";
+    $("playFieldWrap").appendChild(el("div", "chart-desc", "Carregando frames NGS…"));
+    $("playScrub").innerHTML = "";
+    fetch("/api/motion/" + play.gameId + "/" + play.playId)
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+      .then(function (full) {
+        play.frames = full.frames;
+        play.snapFrame = full.snapFrame;
+        play.releaseFrame = full.releaseFrame;
+        if (full.pressure) play.pressure = full.pressure;
+        playsUi.frame = play.snapFrame || play.frames[0].f;
+        renderPlayChrome(play);
+        mountScrub(play);
+      })
+      .catch(function () {
+        $("playFieldWrap").innerHTML = "";
+        $("playFieldWrap").appendChild(el("div", "chart-desc",
+          "Não achei os frames. Suba o servidor com `python scripts/plays_server.py` e os CSVs em /tmp/bdb-tracking."));
+        if (play.snap) $("playFieldWrap").appendChild(drawField(play, play.snap, 720, 320));
+      });
+  }
+
   // ---- eventos -----------------------------------------------------------
   function bindUI() {
     var btns = document.querySelectorAll(".navbtn");
@@ -641,6 +928,7 @@
     var ctabs = document.querySelectorAll("#chartTabs .tab");
     for (var j = 0; j < ctabs.length; j++)
       ctabs[j].addEventListener("click", function () { chart.kind = this.dataset.chart; renderCharts(); });
+    $("btnBackPlays").addEventListener("click", function () { stopPlayback(); showPlaysList(); });
   }
 
   loadData();

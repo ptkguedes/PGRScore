@@ -37,12 +37,14 @@ flowchart LR
 | Métricas PGRScore | Mesmo job | `pipeline/pgr_score_calculator.py` |
 | JSON consolidado | `s3://pgrscore-processed/processed/processed_data.json` | `output/processed_data.json` e cópia em `web/` |
 | Consultas tabulares | DynamoDB (PK `nfl_id`) | `output/pgrscore.sqlite` |
-| Dashboard | CloudFront + S3 estático | `python -m http.server` em `web/` |
+| Dashboard | CloudFront + S3 estático | `python scripts/plays_server.py --port 43127` |
+| Tracking NGS (playback) | Objeto no S3, fora do git | CSVs em `/tmp/bdb-tracking`; índice `web/plays/index.json`; frames via `/api/motion/{gameId}/{playId}` |
 
 ## Fontes
 
 - `games.csv`, `plays.csv`, `players.csv`, `pffScoutingData.csv` — Big Data Bowl 2022 (temporada 2021, semanas 1–8).
 - `tracking_metrics.json` — overlay de tracking (velocidade, aceleração, jardas/snap, série por jogo). Os arquivos semanais de tracking (~810 MB) não cabem neste repositório; o overlay replica as métricas que o `data.js` original já carregava.
+- Tracking NGS (Bliss / Big Data Bowl) — 122 CSVs `tracking_{gameId}.csv` baixados para disco local. O git versiona só `web/plays/index.json` (catálogo + miniatura no snap). HIT/HURRY/SACK vêm do PFF; frame de release é o evento `pass_forward`.
 - Snaps = linhas PFF por `nflId`. Pressões = `pff_hit + pff_hurry`. Sacks permitidos (OL) = `pff_sackAllowed`.
 
 ## PGRScore
