@@ -41,6 +41,7 @@ Testes unitários da matemática do índice:
 
 ```bash
 python tests/test_pgr_score.py
+python tests/test_records.py
 ```
 
 Consulta SQL de exemplo:
@@ -70,7 +71,8 @@ pipeline/                 núcleo Python
   run.py                  CLI
 scripts/aws_s3_upload.py  S3 / Lambda
 data/raw/                 dataset de amostra
-data/ref/                 tabela 2021 e cores
+data/ref/                 nomes, conferência, divisão, cores
+data/raw/game_results.csv placares oficiais semanas 1–8 (ESPN, casados a games.csv)
 web/                      apresentação (tiles usam web/logos/*.png)
 ARCHITECTURE.md           fluxo S3 → Lambda/Glue → S3/DynamoDB → UI
 ```

@@ -4,9 +4,6 @@
     "name": "Green Bay Packers",
     "conf": "NFC",
     "div": "North",
-    "record": "13-4",
-    "winPct": 0.765,
-    "rank": 1,
     "colors": {
       "primary": "#203731",
       "secondary": "#FFB612"
@@ -17,9 +14,6 @@
     "name": "Tampa Bay Buccaneers",
     "conf": "NFC",
     "div": "South",
-    "record": "13-4",
-    "winPct": 0.765,
-    "rank": 2,
     "colors": {
       "primary": "#D50A0A",
       "secondary": "#34302B"
@@ -30,9 +24,6 @@
     "name": "Kansas City Chiefs",
     "conf": "AFC",
     "div": "West",
-    "record": "12-5",
-    "winPct": 0.706,
-    "rank": 3,
     "colors": {
       "primary": "#E31837",
       "secondary": "#FFB81C"
@@ -43,9 +34,6 @@
     "name": "Tennessee Titans",
     "conf": "AFC",
     "div": "South",
-    "record": "12-5",
-    "winPct": 0.706,
-    "rank": 4,
     "colors": {
       "primary": "#0C2340",
       "secondary": "#4B92DB"
@@ -56,9 +44,6 @@
     "name": "Dallas Cowboys",
     "conf": "NFC",
     "div": "East",
-    "record": "12-5",
-    "winPct": 0.706,
-    "rank": 5,
     "colors": {
       "primary": "#003594",
       "secondary": "#869397"
@@ -69,9 +54,6 @@
     "name": "Los Angeles Rams",
     "conf": "NFC",
     "div": "West",
-    "record": "12-5",
-    "winPct": 0.706,
-    "rank": 6,
     "colors": {
       "primary": "#003594",
       "secondary": "#FFA300"
@@ -82,9 +64,6 @@
     "name": "Buffalo Bills",
     "conf": "AFC",
     "div": "East",
-    "record": "11-6",
-    "winPct": 0.647,
-    "rank": 7,
     "colors": {
       "primary": "#00338D",
       "secondary": "#C60C30"
@@ -95,9 +74,6 @@
     "name": "Arizona Cardinals",
     "conf": "NFC",
     "div": "West",
-    "record": "11-6",
-    "winPct": 0.647,
-    "rank": 8,
     "colors": {
       "primary": "#97233F",
       "secondary": "#FFB612"
@@ -108,9 +84,6 @@
     "name": "San Francisco 49ers",
     "conf": "NFC",
     "div": "West",
-    "record": "10-7",
-    "winPct": 0.588,
-    "rank": 9,
     "colors": {
       "primary": "#AA0000",
       "secondary": "#B3995D"
@@ -121,9 +94,6 @@
     "name": "Cincinnati Bengals",
     "conf": "AFC",
     "div": "North",
-    "record": "10-7",
-    "winPct": 0.588,
-    "rank": 10,
     "colors": {
       "primary": "#FB4F14",
       "secondary": "#000000"
@@ -134,9 +104,6 @@
     "name": "Las Vegas Raiders",
     "conf": "AFC",
     "div": "West",
-    "record": "10-7",
-    "winPct": 0.588,
-    "rank": 11,
     "colors": {
       "primary": "#000000",
       "secondary": "#A5ACAF"
@@ -147,9 +114,6 @@
     "name": "New England Patriots",
     "conf": "AFC",
     "div": "East",
-    "record": "10-7",
-    "winPct": 0.588,
-    "rank": 12,
     "colors": {
       "primary": "#002244",
       "secondary": "#C60C30"
@@ -160,9 +124,6 @@
     "name": "Pittsburgh Steelers",
     "conf": "AFC",
     "div": "North",
-    "record": "9-7-1",
-    "winPct": 0.559,
-    "rank": 13,
     "colors": {
       "primary": "#FFB612",
       "secondary": "#101820"
@@ -173,9 +134,6 @@
     "name": "Philadelphia Eagles",
     "conf": "NFC",
     "div": "East",
-    "record": "9-8",
-    "winPct": 0.529,
-    "rank": 14,
     "colors": {
       "primary": "#004C54",
       "secondary": "#A5ACAF"
@@ -186,9 +144,6 @@
     "name": "Los Angeles Chargers",
     "conf": "AFC",
     "div": "West",
-    "record": "9-8",
-    "winPct": 0.529,
-    "rank": 15,
     "colors": {
       "primary": "#0080C6",
       "secondary": "#FFC20E"
@@ -199,9 +154,6 @@
     "name": "Miami Dolphins",
     "conf": "AFC",
     "div": "East",
-    "record": "9-8",
-    "winPct": 0.529,
-    "rank": 16,
     "colors": {
       "primary": "#008E97",
       "secondary": "#FC4C02"
@@ -212,9 +164,6 @@
     "name": "New Orleans Saints",
     "conf": "NFC",
     "div": "South",
-    "record": "9-8",
-    "winPct": 0.529,
-    "rank": 17,
     "colors": {
       "primary": "#D3BC8D",
       "secondary": "#101820"
@@ -225,9 +174,6 @@
     "name": "Indianapolis Colts",
     "conf": "AFC",
     "div": "South",
-    "record": "9-8",
-    "winPct": 0.529,
-    "rank": 18,
     "colors": {
       "primary": "#002C5F",
       "secondary": "#A2AAAD"
@@ -238,9 +184,6 @@
     "name": "Minnesota Vikings",
     "conf": "NFC",
     "div": "North",
-    "record": "8-9",
-    "winPct": 0.471,
-    "rank": 19,
     "colors": {
       "primary": "#4F2683",
       "secondary": "#FFC62F"
@@ -251,9 +194,6 @@
     "name": "Baltimore Ravens",
     "conf": "AFC",
     "div": "North",
-    "record": "8-9",
-    "winPct": 0.471,
-    "rank": 20,
     "colors": {
       "primary": "#241773",
       "secondary": "#9E7C0C"
@@ -264,9 +204,6 @@
     "name": "Cleveland Browns",
     "conf": "AFC",
     "div": "North",
-    "record": "8-9",
-    "winPct": 0.471,
-    "rank": 21,
     "colors": {
       "primary": "#311D00",
       "secondary": "#FF3C00"
@@ -277,9 +214,6 @@
     "name": "Seattle Seahawks",
     "conf": "NFC",
     "div": "West",
-    "record": "7-10",
-    "winPct": 0.412,
-    "rank": 22,
     "colors": {
       "primary": "#002244",
       "secondary": "#69BE28"
@@ -290,9 +224,6 @@
     "name": "Washington Football Team",
     "conf": "NFC",
     "div": "East",
-    "record": "7-10",
-    "winPct": 0.412,
-    "rank": 23,
     "colors": {
       "primary": "#5A1414",
       "secondary": "#FFB612"
@@ -303,9 +234,6 @@
     "name": "Denver Broncos",
     "conf": "AFC",
     "div": "West",
-    "record": "7-10",
-    "winPct": 0.412,
-    "rank": 24,
     "colors": {
       "primary": "#FB4F14",
       "secondary": "#002244"
@@ -316,9 +244,6 @@
     "name": "Atlanta Falcons",
     "conf": "NFC",
     "div": "South",
-    "record": "7-10",
-    "winPct": 0.412,
-    "rank": 25,
     "colors": {
       "primary": "#A71930",
       "secondary": "#000000"
@@ -329,9 +254,6 @@
     "name": "Chicago Bears",
     "conf": "NFC",
     "div": "North",
-    "record": "6-11",
-    "winPct": 0.353,
-    "rank": 26,
     "colors": {
       "primary": "#0B162A",
       "secondary": "#C83803"
@@ -342,9 +264,6 @@
     "name": "Carolina Panthers",
     "conf": "NFC",
     "div": "South",
-    "record": "5-12",
-    "winPct": 0.294,
-    "rank": 27,
     "colors": {
       "primary": "#0085CA",
       "secondary": "#101820"
@@ -355,9 +274,6 @@
     "name": "New York Giants",
     "conf": "NFC",
     "div": "East",
-    "record": "4-13",
-    "winPct": 0.235,
-    "rank": 28,
     "colors": {
       "primary": "#0B2265",
       "secondary": "#A71930"
@@ -368,9 +284,6 @@
     "name": "New York Jets",
     "conf": "AFC",
     "div": "East",
-    "record": "4-13",
-    "winPct": 0.235,
-    "rank": 29,
     "colors": {
       "primary": "#125740",
       "secondary": "#008052"
@@ -381,9 +294,6 @@
     "name": "Houston Texans",
     "conf": "AFC",
     "div": "South",
-    "record": "4-13",
-    "winPct": 0.235,
-    "rank": 30,
     "colors": {
       "primary": "#03202F",
       "secondary": "#A71930"
@@ -394,9 +304,6 @@
     "name": "Detroit Lions",
     "conf": "NFC",
     "div": "North",
-    "record": "3-13-1",
-    "winPct": 0.206,
-    "rank": 31,
     "colors": {
       "primary": "#0076B6",
       "secondary": "#B0B7BC"
@@ -407,9 +314,6 @@
     "name": "Jacksonville Jaguars",
     "conf": "AFC",
     "div": "South",
-    "record": "3-14",
-    "winPct": 0.176,
-    "rank": 32,
     "colors": {
       "primary": "#101820",
       "secondary": "#D7A22A"

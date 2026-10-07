@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from pipeline.assemble import assemble_document, build_player_table  # noqa: E402
+from pipeline.records import attach_scores, load_game_results  # noqa: E402
 from pipeline.ingest import (  # noqa: E402
     aggregate_pff,
     assign_snap_teams,
@@ -46,6 +47,7 @@ def run(raw_dir: Path, ref: Path, output_dir: Path, web_dir: Path | None) -> dic
     plays = load_plays(raw_dir)
     tracking = load_tracking(raw_dir)
     team_ref = load_team_ref(ref)
+    games = attach_scores(games, load_game_results(raw_dir))
 
     snaps = assign_snap_teams(pff, plays)
     pff_agg = aggregate_pff(snaps)

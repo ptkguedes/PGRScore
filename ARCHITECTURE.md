@@ -31,7 +31,8 @@ flowchart LR
 | Etapa | AWS | Simulação local |
 | --- | --- | --- |
 | Dataset bruto | Bucket `pgrscore-raw` | `data/raw/` |
-| Referência de times (tabela 2021, cores) | Parâmetro / SSM | `data/ref/teams_2021.json` |
+| Referência de times (nome, cores) | Parâmetro / SSM | `data/ref/teams_2021.json` |
+| Campanha W-L-T semanas 1–8 | Resultados oficiais + `games.csv` | `data/raw/game_results.csv` + `pipeline/records.py` |
 | Job | Lambda (evento S3) ou Glue Python | `python -m pipeline.run` ou `scripts/aws_s3_upload.py` |
 | Métricas PGRScore | Mesmo job | `pipeline/pgr_score_calculator.py` |
 | JSON consolidado | `s3://pgrscore-processed/processed/processed_data.json` | `output/processed_data.json` e cópia em `web/` |

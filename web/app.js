@@ -177,7 +177,7 @@
     var info = el("div", "hero-info");
     info.appendChild(el("h2", null, team.name));
     info.appendChild(el("div", "rec", team.record + " · " + team.conf + " " + team.div));
-    var rankEl = el("div", "hero-rank", "Colocação 2021: #" + team.rank);
+    var rankEl = el("div", "hero-rank", "Colocação sem. 1–8: #" + team.rank);
     rankEl.style.color = (team.colors.secondary === "#101820" || team.colors.secondary === "#000000")
       ? "#8792ab" : team.colors.secondary;
     info.appendChild(rankEl);
@@ -286,7 +286,7 @@
     if (!nav.team) {
       body.appendChild(el("h1", "screen-title", 'Equipes <span>&amp; Elencos</span>'));
       body.appendChild(el("p", "screen-caption", "Clique numa equipe para ver o elenco por posição."));
-      var head = el("h2", "section-head", "32 times <span class='hint'>— ordenados pela tabela 2021</span>");
+      var head = el("h2", "section-head", "32 times <span class='hint'>— ordenados pelas semanas 1–8</span>");
       body.appendChild(head);
       var grid = el("div", "team-grid");
       teamList().forEach(function (team) {
